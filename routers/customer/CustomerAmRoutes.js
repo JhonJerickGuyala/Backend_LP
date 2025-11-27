@@ -3,7 +3,7 @@ import { getAllAmenities, getAmenityById } from '../../controller/customer/Custo
 
 const router = express.Router();
 
-router.get('/all', getAllAmenities);
+router.get('/', getAllAmenities);
 router.get('/:id', getAmenityById);
 
 export default router;
