@@ -1,7 +1,7 @@
 import db from '../config/db.js';
 
 const ReservationModel = {
-  // Create new reservation
+  
   async create(reservationData) {
     const {
       transaction_id,
@@ -22,7 +22,9 @@ const ReservationModel = {
     return result.insertId;
   },
 
-  // Find by transaction ID
+  
+
+  
   async findByTransactionId(transaction_id) {
     const [rows] = await db.query(
       'SELECT * FROM ReservationDb WHERE transaction_id = ?',
@@ -31,7 +33,15 @@ const ReservationModel = {
     return rows;
   },
 
-  // Update status by transaction ID
+  async findById(id) {
+    const [rows] = await db.query(
+      'SELECT * FROM ReservationDb WHERE id = ?',
+      [id]
+    );
+    return rows[0];
+  },
+
+  
   async updateStatusByTransaction(transaction_id, status) {
     await db.query(
       'UPDATE ReservationDb SET status = ? WHERE transaction_id = ?',
@@ -39,7 +49,7 @@ const ReservationModel = {
     );
   },
 
-  // Cancel by transaction ID
+  
   async cancelByTransaction(transaction_id) {
     await db.query(
       'UPDATE ReservationDb SET status = "Cancelled" WHERE transaction_id = ?',
@@ -47,7 +57,7 @@ const ReservationModel = {
     );
   },
 
-  // Create multiple reservations
+  
   async createMultiple(reservationsData) {
     const promises = reservationsData.map(reservation => this.create(reservation));
     return Promise.all(promises);
