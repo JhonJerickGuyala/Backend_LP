@@ -82,13 +82,32 @@ const TransactionModel = {
     );
     return rows;
   },
-  
+
   // Update booking status
   async updateStatus(id, booking_status) {
     await db.query(
       'UPDATE TransactionDb SET booking_status = ? WHERE id = ?',
       [booking_status, id]
     );
+  },
+
+
+  // =========================================================
+  // 2. OWNER DASHBOARD FEATURES (From New Code)
+  // =========================================================
+
+  // 👇 CORRECTED CHECK-IN (Zero Balance, Fully Paid, BUT PRESERVE DOWNPAYMENT)
+  async checkIn(id) {
+    // We set Balance to 0 because customer pays the remaining amount at the counter.
+    const [result] = await db.query(
+      `UPDATE TransactionDb 
+       SET booking_status = 'Checked-In', 
+           balance = 0, 
+           payment_status = 'Fully Paid' 
+       WHERE id = ?`,
+      [id]
+    );
+    return result;
   },
 
   // Cancel transaction
