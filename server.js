@@ -1,16 +1,17 @@
 import express from "express";
-import 'dotenv/config.js'
+import 'dotenv/config'; 
 import cors from "cors";
 import path from "path";
 import UserRoutes from "./routers/UserRoutes.js"; 
 import CustomerAmRoutes from "./routers/customer/CustomerAmRoutes.js";
+import CustomerFeedbackRoutes from "./routers/customer/CustomerFeedbackRoutes.js";
 import OwnerAmenityRoutes from "./routers/owner/ownerAmenityRoutes.js"; 
 import ownerDashboardRoutes from './routers/owner/ownerDashboardRoutes.js';
 import transactionRoutes from './routers/TransactionRoutes.js';
 import reservationRoutes from './routers/ReservationRoutes.js';
-import CustomerFeedbackRoutes from "./routers/customer/CustomerFeedbackRoutes.js";
 
 const app = express();
+
 
 function validateRouteFile(routeName, router) {
     const routerStack = router.stack || router._router?.stack || [];
@@ -28,13 +29,37 @@ function validateRouteFile(routeName, router) {
 }
 
 
-
-let corsOptions = {
-    origin: process.env.ORIGIN || "http://localhost:5173",
-    credentials: true,
+const corsOptions = {
+    origin: (origin, callback) => {
+        const allowedOrigins = [
+            "http://localhost:5173", 
+            "http://localhost:5174", 
+            "http://127.0.0.1:5173", 
+            process.env.CLIENT_URL, 
+            process.env.ORIGIN
+        ];
+        
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.log("🚫 Blocked by CORS:", origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true, 
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
-}
+};
+
+app.use(express.json({ limit: '10mb' })); 
+app.use(cors(corsOptions)); 
+
+app.use('/uploads/am_images', express.static(path.join(process.cwd(), 'uploads', 'am_images')));
+
+app.use((req, res, next) => {
+    console.log(`📝 ${req.method} ${req.originalUrl}`);
+    next();
+});
 
 try {
     validateRouteFile('UserRoutes (Auth)', UserRoutes);
@@ -42,10 +67,6 @@ try {
     validateRouteFile('CustomerFeedbackRoutes', CustomerFeedbackRoutes);
     validateRouteFile('OwnerAmenityRoutes', OwnerAmenityRoutes);
     validateRouteFile('ownerDashboardRoutes', ownerDashboardRoutes);
-    
-    // ❌ REMOVED THIS LINE CAUSING THE CRASH:
-    // validateRouteFile('userRoutes (Owner Manage)', userRoutes); 
-    
     validateRouteFile('transactionRoutes', transactionRoutes);
     validateRouteFile('reservationRoutes', reservationRoutes);
 } catch (error) {
@@ -54,51 +75,50 @@ try {
     process.exit(1); 
 }
 
-
-
-
-app.use(express.json());
-app.use(cors(corsOptions));
-
-app.use('/uploads/am_images', express.static(path.join(process.cwd(), 'uploads', 'am_images')));
-
-app.use((req, res, next) => {
-    console.log(req.path, req.method);
-    next();
-});
-
-
 app.use('/api/auth', UserRoutes);
-
 app.use('/api/amenities', CustomerAmRoutes);  
+app.use('/api/feedbacks', CustomerFeedbackRoutes);
 
-// routes para sa owner
+//Owner Dashboard & Management
 app.use('/api/owner/amenities', OwnerAmenityRoutes);
-app.use('/uploads/payments', express.static(path.join(process.cwd(), 'uploads', 'payments')));
 app.use('/api/owner', ownerDashboardRoutes); 
 
-// NEW: routes para sa transactions at reservations
+//Transactions & Reservations
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/reservations', reservationRoutes);
-app.use('/api/feedbacks', CustomerFeedbackRoutes)
 
+//System Health Check
 app.get('/api/health', (req, res) => {
     res.json({ 
         success: true, 
         message: 'IRMS API is running!',
-        timestamp: new Date().toISOString()
+        uptime: process.uptime()
     });
 });
 
+// Root Route
 app.get('/', (req, res) => {
-    res.json({ message: 'Server is running' });
+    res.json({ message: 'IRMS Server is running. Access API at /api/...' });
+});
+
+
+// ERROR HANDLING
+app.use((err, req, res, next) => {
+    console.error(`❌ ERROR: ${err.message}`);
+    
+    res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    });
 });
 
 try {
-    app.listen(process.env.PORT || 5000, () => {
-        console.log(`🚀 Server running on port ${process.env.PORT || 5000}`);
-        console.log(`📍 Health check: http://localhost:${process.env.PORT || 5000}/api/health`);
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`\n🚀 Server running on port ${PORT}`);
+        console.log(`🔗 Health Check: http://localhost:${PORT}/api/health`);
     });
 } catch (e) {
-    console.log(e);
+    console.log('\n❌ SERVER STARTUP ERROR:', e);
 }
