@@ -22,9 +22,6 @@ const ReservationModel = {
     return result.insertId;
   },
 
-  
-
-  
   async findByTransactionId(transaction_id) {
     const [rows] = await db.query(
       'SELECT * FROM ReservationDb WHERE transaction_id = ?',
@@ -41,7 +38,6 @@ const ReservationModel = {
     return rows[0];
   },
 
-  
   async updateStatusByTransaction(transaction_id, status) {
     await db.query(
       'UPDATE ReservationDb SET status = ? WHERE transaction_id = ?',
@@ -49,7 +45,6 @@ const ReservationModel = {
     );
   },
 
-  
   async cancelByTransaction(transaction_id) {
     await db.query(
       'UPDATE ReservationDb SET status = "Cancelled" WHERE transaction_id = ?',
@@ -57,7 +52,6 @@ const ReservationModel = {
     );
   },
 
-  
   async createMultiple(reservationsData) {
     const promises = reservationsData.map(reservation => this.create(reservation));
     return Promise.all(promises);

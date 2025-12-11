@@ -25,7 +25,9 @@ const TransactionController = {
             await connection.beginTransaction();
 
             const cart = typeof req.body.cart === 'string' ? JSON.parse(req.body.cart) : req.body.cart;
-            const { fullName, contactNumber, address, checkInDate, checkOutDate, booking_type, paymentStatus, bookingStatus } = req.body;
+            
+            // Destructure inputs
+            const { fullName, contactNumber, address, numGuest, checkInDate, checkOutDate, booking_type, paymentStatus, bookingStatus } = req.body;
 
             const isWalkIn = booking_type === 'Walk-in';
             const user_id = req.user ? req.user.id : (req.body.user_id || null);
@@ -33,15 +35,44 @@ const TransactionController = {
             const mysqlCheckInDate = formatForMySQL(checkInDate);
             const mysqlCheckOutDate = formatForMySQL(checkOutDate);
 
-            if (!fullName || !contactNumber || !address || !checkInDate || !checkOutDate) {
+            // Validation
+            if (!fullName || !contactNumber || !address || !numGuest || !checkInDate || !checkOutDate) {
                 return res.status(400).json({ success: false, message: 'All fields are required' });
             }
             if (!cart || cart.length === 0) {
                 return res.status(400).json({ success: false, message: 'Cart cannot be empty' });
             }
 
-            const calculatedTotal = cart.reduce((total, item) => total + (parseFloat(item.amenity_price) * parseInt(item.quantity)), 0);
+            // ============================================================
+            // ✅ UPDATED CALCULATION LOGIC (Backend Side)
+            // ============================================================
+
+            // 1. Calculate Duration (Days)
+            let days = 1;
+            const start = new Date(checkInDate);
+            const end = new Date(checkOutDate);
             
+            if (end > start) {
+                const diffTime = Math.abs(end - start);
+                // Round up (e.g., 25 hours = 2 days)
+                days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            }
+            if (days < 1) days = 1; // Minimum 1 day
+
+            // 2. Calculate Entrance Fee (Guests * 50)
+            const guestCount = parseInt(numGuest) || 0;
+            const entranceFeePerHead = 50;
+            const totalEntranceFee = guestCount * entranceFeePerHead;
+
+            // 3. Calculate Cart Total (Amenities)
+            const cartTotal = cart.reduce((total, item) => total + (parseFloat(item.amenity_price) * parseInt(item.quantity)), 0);
+
+            // 4. Final Total Calculation: (Cart + Entrance) * Days
+            // Dati: const calculatedTotal = cartTotal; (Ito ang mali)
+            const calculatedTotal = (cartTotal + totalEntranceFee) * days;
+            
+            // ============================================================
+
             let finalTotalAmount = calculatedTotal;
             let finalDownpayment = 0;
             let finalBalance = 0;
@@ -51,7 +82,7 @@ const TransactionController = {
                 finalDownpayment = calculatedTotal; 
                 finalBalance = 0;
             } else {
-                finalDownpayment = finalTotalAmount * 0.2;
+                finalDownpayment = finalTotalAmount * 0.2; // 20% Downpayment
                 finalBalance = finalTotalAmount - finalDownpayment;
             }
 
@@ -60,12 +91,14 @@ const TransactionController = {
             const finalPaymentStatus = paymentStatus || (isWalkIn ? 'Fully Paid' : 'Partial'); 
             const finalBookingStatus = bookingStatus || (isWalkIn ? 'Confirmed' : 'Pending'); 
 
+            // Save to Database
             const transactionId = await Transaction.create({
                 transaction_ref,
                 customer_name: fullName,
                 contact_number: contactNumber,
                 customer_address: address,
-                total_amount: finalTotalAmount,
+                num_guest: numGuest, 
+                total_amount: finalTotalAmount, // ✅ Now stores the correct computed total
                 downpayment: finalDownpayment,
                 balance: finalBalance,
                 proof_of_payment,
@@ -107,6 +140,7 @@ const TransactionController = {
         }
     },
 
+    // ... (Keep the rest of your controller functions as they are)
     // 2. GET ALL TRANSACTIONS
     async getAll(req, res) {
         try {
@@ -127,7 +161,10 @@ const TransactionController = {
             res.status(500).json({ success: false, message: 'Failed to fetch transactions', error: error.message });
         }
     },
-
+    
+    // ... rest of the file ...
+    // (Siguraduhin mo lang na hindi mabubura yung ibang functions sa baba nito)
+    
     // 3. GET TODAY'S BOOKINGS
     async getTodaysBookings(req, res) {
         try {
@@ -186,6 +223,7 @@ const TransactionController = {
         }
     },
 
+    // GET BY CUSTOMER NAME (For Search/Admin)
     async getByCustomer(req, res) {
         try {
             const { customer_name, contact_number } = req.query;
@@ -204,6 +242,7 @@ const TransactionController = {
         }
     },
 
+    // GET BY USER ID (For Admin viewing specific user)
     async getByUserId(req, res) {
         try {
             const { userId } = req.params;

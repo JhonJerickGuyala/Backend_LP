@@ -58,7 +58,7 @@ const OwnerDashboardModel = {
             trend
         };
     },
-    
+
     getTransactions: async (startDate, endDate) => {
         const [rows] = await db.query(`
             SELECT 
