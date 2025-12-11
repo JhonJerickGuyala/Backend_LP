@@ -1,4 +1,4 @@
-import db from '../../config/db.js';
+import db from '../../config/db.js'; // ES Module import
 
 const CustomerAmModel = {
   // GET all amenities
@@ -6,14 +6,21 @@ const CustomerAmModel = {
     const query = `
       SELECT a.*, 
       (SELECT COUNT(*) FROM ReservationDb b 
-       WHERE b.amenity_id = a.id            -- Eto, okay na gamitin ang ID
-       AND b.check_in_date = CURDATE()      -- Eto, pinalitan ko ng check_in_date
-       AND b.status IN ('Confirmed', 'Checked-In')) as booked_today
+        WHERE b.amenity_id = a.id           -- Corrected: amenity_id
+        AND b.check_in_date = CURDATE()     -- Corrected: check_in_date
+        AND b.status IN ('Confirmed', 'Checked-In')
+      ) as booked_today
       FROM AmenitiesDb a 
       ORDER BY a.id DESC
     `;
-    const [rows] = await db.query(query);
-    return rows;
+    
+    try {
+      const [rows] = await db.query(query);
+      return rows;
+    } catch (error) {
+      console.error("Error in CustomerAmModel.getAll:", error);
+      throw error;
+    }
   },
 
   // GET single amenity by ID
@@ -21,21 +28,38 @@ const CustomerAmModel = {
     const query = `
       SELECT a.*, 
       (SELECT COUNT(*) FROM ReservationDb b 
-       WHERE b.amenity_id = a.id            -- ID na ang gamit
-       AND b.check_in_date = CURDATE()      -- check_in_date na ang gamit
-       AND b.status IN ('Confirmed', 'Checked-In')) as booked_today
+        WHERE b.amenity_id = a.id 
+        AND b.check_in_date = CURDATE() 
+        AND b.status IN ('Confirmed', 'Checked-In')
+      ) as booked_today
       FROM AmenitiesDb a 
       WHERE a.id = ?
     `;
-    const [rows] = await db.query(query, [id]);
-    return rows[0];
+
+    try {
+      const [rows] = await db.query(query, [id]);
+      return rows[0];
+    } catch (error) {
+      console.error("Error in CustomerAmModel.getById:", error);
+      throw error;
+    }
   },
 
+  // Helper function to format data for frontend
   formatAmenity(amenity) {
+    // Safety check: Iwas crash kung undefined ang amenity
+    if (!amenity) return null;
+
     const totalQuantity = amenity.quantity ? parseInt(amenity.quantity) : 0;
     const currentBooked = amenity.booked_today || 0;
+    
+    // Logic: Fully booked if reserved count >= total quantity
     const isFullyBooked = currentBooked >= totalQuantity;
+    
+    // Logic: Check manual availability switch from DB ('Yes'/1)
     const isManuallyAvailable = (amenity.available === 'Yes' || amenity.available === 1);
+    
+    // Final Availability: Must be manually available AND not fully booked
     const finalAvailable = isManuallyAvailable && !isFullyBooked;
 
     return {
@@ -45,16 +69,22 @@ const CustomerAmModel = {
       description: amenity.description,
       capacity: amenity.capacity,
       price: parseFloat(amenity.price),
-      available: finalAvailable ? 'Yes' : 'No',
+      available: finalAvailable ? 'Yes' : 'No', // Override availability based on bookings
       quantity: totalQuantity,
-      remaining: Math.max(0, totalQuantity - currentBooked),
+      remaining: Math.max(0, totalQuantity - currentBooked), // Prevent negative numbers
       image: amenity.image
     };
   },
 
+  // GET Featured amenities
   async getFeatured() {
-    const [rows] = await db.query("SELECT * FROM AmenitiesDb LIMIT 3");
-    return rows;
+    try {
+      const [rows] = await db.query("SELECT * FROM AmenitiesDb LIMIT 3");
+      return rows;
+    } catch (error) {
+      console.error("Error in CustomerAmModel.getFeatured:", error);
+      throw error;
+    }
   }
 };
 

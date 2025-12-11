@@ -1,7 +1,7 @@
 import db from '../config/db.js';
 
 const ReservationModel = {
-  // Create new reservation
+  // 1. STANDARD CRUD (From Old & New)
   async create(reservationData) {
     const {
       transaction_id,
@@ -22,7 +22,6 @@ const ReservationModel = {
     return result.insertId;
   },
 
-  // Find by transaction ID
   async findByTransactionId(transaction_id) {
     const [rows] = await db.query(
       'SELECT * FROM ReservationDb WHERE transaction_id = ?',
@@ -31,7 +30,14 @@ const ReservationModel = {
     return rows;
   },
 
-  // Update status by transaction ID
+  async findById(id) {
+    const [rows] = await db.query(
+      'SELECT * FROM ReservationDb WHERE id = ?',
+      [id]
+    );
+    return rows[0];
+  },
+
   async updateStatusByTransaction(transaction_id, status) {
     await db.query(
       'UPDATE ReservationDb SET status = ? WHERE transaction_id = ?',
@@ -39,7 +45,6 @@ const ReservationModel = {
     );
   },
 
-  // Cancel by transaction ID
   async cancelByTransaction(transaction_id) {
     await db.query(
       'UPDATE ReservationDb SET status = "Cancelled" WHERE transaction_id = ?',
@@ -47,10 +52,60 @@ const ReservationModel = {
     );
   },
 
-  // Create multiple reservations
   async createMultiple(reservationsData) {
     const promises = reservationsData.map(reservation => this.create(reservation));
     return Promise.all(promises);
+  },
+
+  // =========================================================
+  // 2. DASHBOARD / TASK LIST FEATURES (From New Code)
+  // =========================================================
+
+  // 👇 CHECK-INS TODAY (PH Time Logic)
+  async getTodaysCheckIns() {
+    const [rows] = await db.query(
+      `SELECT r.*, t.customer_name, t.contact_number 
+       FROM ReservationDb r
+       JOIN TransactionDb t ON r.transaction_id = t.id
+       -- Compare Check-in Date vs PH Date Today
+       WHERE DATE(r.check_in_date) = DATE(DATE_ADD(NOW(), INTERVAL 8 HOUR))
+       AND r.status != 'Cancelled'
+       ORDER BY r.check_in_date ASC`
+    );
+    return rows;
+  },
+
+  // 👇 CHECK-OUTS TODAY (PH Time Logic)
+  async getTodaysCheckOuts() {
+    const [rows] = await db.query(
+      `SELECT r.*, t.customer_name, t.contact_number 
+       FROM ReservationDb r
+       JOIN TransactionDb t ON r.transaction_id = t.id
+       WHERE DATE(r.check_out_date) = DATE(DATE_ADD(NOW(), INTERVAL 8 HOUR))
+       AND r.status != 'Cancelled'
+       ORDER BY r.check_out_date ASC`
+    );
+    return rows;
+  },
+
+  // 👇 NEW: Extend check-out date
+  async extendCheckOutDate(reservation_id, new_check_out_date) {
+    const [result] = await db.query(
+      'UPDATE ReservationDb SET check_out_date = ? WHERE id = ?',
+      [new_check_out_date, reservation_id]
+    );
+    return result.affectedRows;
+  },
+
+  // 👇 NEW: Update payment status to Fully Paid when balance is 0
+  async updatePaymentToFullyPaid(transaction_id) {
+    const [result] = await db.query(
+      `UPDATE TransactionDb 
+       SET payment_status = 'Fully Paid' 
+       WHERE id = ? AND balance <= 0`,
+      [transaction_id]
+    );
+    return result.affectedRows;
   }
 };
 
