@@ -19,10 +19,6 @@ const formatForMySQL = (datetimeString) => {
 };
 
 const TransactionController = {
-    
-    // ============================================================
-    // 👇 BAGONG FUNCTION: REAL-TIME DATE CHECKING
-    // ============================================================
     async checkDateAvailability(req, res) {
         try {
             const { checkIn, checkOut } = req.query;
@@ -38,9 +34,6 @@ const TransactionController = {
         }
     },
 
-    // ============================================================
-    // 1. CREATE TRANSACTION (WITH FINAL INVENTORY CHECK)
-    // ============================================================
     async create(req, res) {
         let connection;
         try {
@@ -59,7 +52,6 @@ const TransactionController = {
             const mysqlCheckInDate = formatForMySQL(checkInDate);
             const mysqlCheckOutDate = formatForMySQL(checkOutDate);
 
-            // 🛑 FINAL CHECK: BAGO MAG-SAVE SA DB
             for (const item of cart) {
                 const check = await Reservation.checkAvailability(
                     item.amenity_name, 
@@ -79,14 +71,13 @@ const TransactionController = {
                 }
             }
 
-            // ✅ PROCEED TO SAVE
             connection = await db.getConnection();
             await connection.beginTransaction();
 
             const isWalkIn = booking_type === 'Walk-in';
             const user_id = req.user ? req.user.id : (req.body.user_id || null);
             
-            // 1. Calculate Duration
+
             let days = 1;
             const start = new Date(checkInDate);
             const end = new Date(checkOutDate);
@@ -111,7 +102,7 @@ const TransactionController = {
                 finalDownpayment = calculatedTotal; 
                 finalBalance = 0;
             } else {
-                finalDownpayment = finalTotalAmount * 0.2; // 20% DP
+                finalDownpayment = finalTotalAmount * 0.2; 
                 finalBalance = finalTotalAmount - finalDownpayment;
             }
 
@@ -168,7 +159,7 @@ const TransactionController = {
         }
     },
 
-    // 2. GET ALL TRANSACTIONS
+    // GET ALL TRANSACTIONS
     async getAll(req, res) {
         try {
             const results = await Transaction.getAllWithReservations();
@@ -189,7 +180,7 @@ const TransactionController = {
         }
     },
 
-    // 3. GET TODAY'S BOOKINGS
+    // GET TODAY'S BOOKINGS
     async getTodaysBookings(req, res) {
         try {
             const results = await Transaction.getTodaysTransactions();
@@ -210,7 +201,7 @@ const TransactionController = {
         }
     },
 
-    // 4. GET BY REFERENCE
+    // GET BY REFERENCE
     async getByRef(req, res) {
         try {
             const { transaction_ref } = req.params;
@@ -228,7 +219,7 @@ const TransactionController = {
         }
     },
 
-    // 5. GET MY TRANSACTIONS
+    // GET MY TRANSACTIONS
     async getMyTransactions(req, res) {
         try {
             const userId = req.user?.id;

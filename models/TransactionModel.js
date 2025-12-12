@@ -1,14 +1,14 @@
 import db from '../config/db.js';
 
 const TransactionModel = {
-  // 1. CREATE TRANSACTION (Combined Fields)
+
   async create(transactionData) {
     const {
       transaction_ref,
       customer_name,
       contact_number,
       customer_address,
-      num_guest, // ✅ Added here
+      num_guest, 
       total_amount,
       downpayment,
       balance,
@@ -19,7 +19,7 @@ const TransactionModel = {
       booking_status = 'Pending'
     } = transactionData; 
 
-    // Debugging
+
     console.log('📝 Creating Transaction for User ID:', user_id);
 
     const [result] = await db.query(
@@ -33,7 +33,7 @@ const TransactionModel = {
         customer_name,
         contact_number,
         customer_address,
-        num_guest, // ✅ Added value here (Order matches columns above)
+        num_guest,
         total_amount,
         downpayment,
         balance,
@@ -47,9 +47,6 @@ const TransactionModel = {
     return result.insertId;
   },
 
-  // ... (Rest of the Model functions remain the same. 
-  // Since "getAll" and others use SELECT * or t.*, they will automatically 
-  // include num_guest if it exists in the database).
   
   async findByCustomer(customer_name, contact_number) {
     const [rows] = await db.query(

@@ -103,11 +103,9 @@ const ReservationModel = {
     return result.affectedRows;
   },
 
-  // ============================================================
-  // 👇 BAGONG FUNCTION: CHECK AVAILABILITY (INVENTORY LOCKING)
-  // ============================================================
+ 
   async checkAvailability(amenity_name, check_in, check_out) {
-    // 1. Kunin ang Total Limit ng Amenity (e.g., 2 units)
+
     const [amenity] = await db.query('SELECT quantity FROM AmenitiesDb WHERE name = ?', [amenity_name]);
     
     if (amenity.length === 0) {
@@ -116,8 +114,6 @@ const ReservationModel = {
     
     const maxLimit = amenity[0].quantity;
 
-    // 2. Bilangin ang existing reservations na tumatama sa dates na ito
-    // Logic: Active Status + Date Overlap
     const [usage] = await db.query(`
       SELECT COALESCE(SUM(quantity), 0) as booked_count 
       FROM ReservationDb 
@@ -135,7 +131,7 @@ const ReservationModel = {
     return { 
         total: maxLimit,
         used: bookedCount,
-        remaining: remaining, // Ito ang iche-check natin
+        remaining: remaining, 
         isFull: remaining <= 0
     };
   }
