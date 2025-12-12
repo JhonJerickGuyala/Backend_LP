@@ -4,7 +4,6 @@ import User from "../models/User.js";
 export const protect = async (req, res, next) => {
     const { authorization } = req.headers;
 
-    // 1. Check if token exists
     if (!authorization) {
         return res.status(401).json({
             message: "You do not have permission to access this resource."
@@ -12,13 +11,8 @@ export const protect = async (req, res, next) => {
     }
 
     try {
-        // 2. Extract token (Bearer <token>)
         const token = authorization.split(' ')[1];
-
-        // 3. Verify token
         const decoded = jwt.verify(token, process.env.SECRET);
-
-        // 4. Check if user still exists in DB
         const user = await User.findById(decoded.id);
         
         if (!user) {
@@ -27,7 +21,6 @@ export const protect = async (req, res, next) => {
             });
         }
 
-        // 5. Attach user to request object (excluding password)
         const { password, ...userData } = user;
         req.user = userData;
 
@@ -41,7 +34,7 @@ export const protect = async (req, res, next) => {
     }
 };
 
-// Middleware para sa Role Checking (Optional pero nasa file mo kanina)
+
 export const authorize = (...roles) => {
     return (req, res, next) => {
         if (!roles.includes(req.user.role)) {

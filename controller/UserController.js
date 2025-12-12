@@ -4,12 +4,10 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import transporter from '../config/email.js';
 
-// --- SIGNUP ---
 export const signup = async (req, res) => {
   console.log('=== USER SIGNUP ===');
   const { username, email, password, confirmPassword } = req.body;
   
-  // 1. Validation
   if (!username || !email || !password || !confirmPassword) {
     return res.status(400).json({ message: 'All fields are required' });
   }
@@ -19,14 +17,12 @@ export const signup = async (req, res) => {
   }
 
   try {
-    // 2. Check for duplicate email/username
     const isDuplicate = await User.checkDuplicate(email, username);
     
     if (isDuplicate) {
       return res.status(400).json({ message: 'Email or username already exists' });
     }
 
-    // 3. Create User
     const userId = await User.create({ username, email, password });
     console.log('User created with ID:', userId);
     
@@ -34,11 +30,17 @@ export const signup = async (req, res) => {
 
   } catch (err) {
     console.error("Signup Error:", err);
+
+    const errorMsg = err.message || "";
+
+    if (errorMsg.includes("Password") || errorMsg.includes("email")) {
+      return res.status(400).json({ message: errorMsg });
+    }
+
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// --- LOGIN (With JWT Integration) ---
 export const login = async (req, res) => {
   console.log('=== USER LOGIN ===');
   const { email, password } = req.body;
@@ -62,21 +64,20 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid password' });
     }
 
-    // 3. Generate JWT Token (ITO ANG BAGO)
+    // 3. Generate JWT Token
     const token = jwt.sign(
-        { id: user.id, role: user.role }, // Payload: ID at Role
-        process.env.SECRET,               // Secret key mula sa .env
-        { expiresIn: '1d' }               // Token expiration
+        { id: user.id, role: user.role }, 
+        process.env.SECRET,             
+        { expiresIn: '1d' }              
     );
 
-    // 4. Return Token and User Data (Exclude password)
     const { password: pw, ...userData } = user;
     
     console.log('Login successful for:', userData.email);
 
     res.status(200).json({ 
         message: 'Login successful', 
-        token,  // Ipapasa ito sa frontend
+        token, 
         user: userData 
     });
 
@@ -89,7 +90,6 @@ export const login = async (req, res) => {
 // --- LOGOUT ---
 export const logout = async (req, res) => {
   console.log('=== USER LOGOUT ===');
-  // Since JWT is stateless, logout is handled on frontend by removing the token.
   res.status(200).json({ message: 'Logged out successfully' });
 };
 
@@ -101,7 +101,6 @@ export const forgotPassword = async (req, res) => {
     const { email } = req.body;
     const user = await User.findByEmail(email);
 
-    // Security practice: Always return success even if user not found to prevent email enumeration
     if (!user) {
       console.log("User not found for email:", email);
       return res.status(200).json({ message: 'Reset link sent.' });
@@ -109,7 +108,7 @@ export const forgotPassword = async (req, res) => {
 
     // 1. Generate Reset Token
     const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    const expires = new Date(Date.now() + 15 * 60 * 1000); 
 
     // 2. Save Token to DB
     await User.updateResetToken(user.id, token, expires);
@@ -161,7 +160,6 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Token is invalid or has expired.' });
     }
 
-    // 2. Update Password
     await User.updatePassword(user.id, password);
     console.log('Password updated for user ID:', user.id);
     
@@ -169,12 +167,16 @@ export const resetPassword = async (req, res) => {
 
   } catch (err) {
     console.error("Reset Password Error:", err);
+
+    const errorMsg = err.message || "";
+    if (errorMsg.includes("Password")) {
+        return res.status(400).json({ message: errorMsg });
+    }
+
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// --- GET ALL USERS (Optional/Admin only) ---
 export const getAllUsers = async (req, res) => {
-    // If you need this based on your routes, add logic here calling User model
     res.status(501).json({ message: "Not implemented yet" });
 };

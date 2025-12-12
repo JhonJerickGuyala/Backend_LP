@@ -5,8 +5,6 @@ const OwnerDashboardController = {
     getAnalyticsData: async (req, res) => {
         try {
             const { startDate, endDate } = req.query;
-            
-            // Default to today if no date provided
             const start = startDate || new Date().toISOString().split('T')[0];
             const end = endDate || new Date().toISOString().split('T')[0];
 

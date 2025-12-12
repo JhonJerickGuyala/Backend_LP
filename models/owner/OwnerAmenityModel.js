@@ -1,12 +1,11 @@
 import db from '../../config/db.js';
 
 const OwnerAmenityModel = {
-    // 1. GET ALL (Updated Logic: Default to Available if no date selected)
+
     getAll: async (checkIn = null, checkOut = null) => {
         let query;
 
-        // SCENARIO A: KAPAG MAY DATE NA PINILI ANG USER
-        // Dito lang tayo maghihigpit at magbibilang ng bookings.
+       
         if (checkIn && checkOut) {
             query = `
                 SELECT 
@@ -25,8 +24,7 @@ const OwnerAmenityModel = {
                 ORDER BY a.id DESC
             `;
         } 
-        // SCENARIO B: KAPAG WALA PANG DATE (Initial Load / Catalog View)
-        // I-set natin ang booked_count sa 0 para maging "Available" lahat sa simula.
+  
         else {
             query = `
                 SELECT 
@@ -44,9 +42,7 @@ const OwnerAmenityModel = {
             
             return {
                 ...amenity,
-                // Ito ang logic: 
-                // Kung wala pang date, 'booked_count' ay 0, so 'remaining' = 'quantity'. (Available)
-                // Kung may date na, babawas na ang reservations.
+            
                 slots_left: remaining > 0 ? remaining : 0,
                 real_time_status: remaining <= 0 ? 'FULL' : 'AVAILABLE'
             };

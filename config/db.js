@@ -13,7 +13,7 @@ const db = mysql.createPool({
     ssl: {
         rejectUnauthorized: true
     },
-    // --- STABILITY SETTINGS ---
+
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -24,7 +24,6 @@ const db = mysql.createPool({
     connectTimeout: 60000 
 });
 
-// Test Connection
 db.getConnection()
     .then(connection => {
         console.log('✅ Connected to TiDB Cloud using .env credentials!');

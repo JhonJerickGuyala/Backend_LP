@@ -78,11 +78,9 @@ const OwnerAmenityController = {
             const { id } = req.params;
             const { name, type, description, capacity, price, status, quantity } = req.body;
             const available = (status === 'available' || status === 'true') ? 'Yes' : 'No';
-            
-            // Gumawa ng object na may lahat ng data para mas simple
             const updateData = {
                 name, 
-                type: type || 'kubo', // Re-use default type just in case
+                type: type || 'kubo',
                 description, 
                 capacity, 
                 price, 
@@ -93,14 +91,12 @@ const OwnerAmenityController = {
             console.log('Update data before file:', updateData);
             
             if (req.file) {
-                // Kung may bagong file, idagdag ang image path sa updateData
                 updateData.image = req.file.path;
                 console.log('Update data with file:', updateData);
             }
             
             console.log('Final update data:', updateData);
             
-            // Tawagin ang model isang beses lang
             await OwnerAmenityModel.update(id, updateData);
             console.log('Update completed for ID:', id);
             

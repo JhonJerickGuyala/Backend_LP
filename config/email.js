@@ -1,4 +1,3 @@
-// 1. Change require to import
 import nodemailer from 'nodemailer';
 import 'dotenv/config.js'; 
 

@@ -1,7 +1,7 @@
-import db from '../../config/db.js'; // ES Module import
+import db from '../../config/db.js'; 
 
 const CustomerAmModel = {
-  // GET all amenities
+
   async getAll() {
     const query = `
       SELECT a.*, 
@@ -45,21 +45,15 @@ const CustomerAmModel = {
     }
   },
 
-  // Helper function to format data for frontend
+
   formatAmenity(amenity) {
-    // Safety check: Iwas crash kung undefined ang amenity
+
     if (!amenity) return null;
 
     const totalQuantity = amenity.quantity ? parseInt(amenity.quantity) : 0;
     const currentBooked = amenity.booked_today || 0;
-    
-    // Logic: Fully booked if reserved count >= total quantity
     const isFullyBooked = currentBooked >= totalQuantity;
-    
-    // Logic: Check manual availability switch from DB ('Yes'/1)
     const isManuallyAvailable = (amenity.available === 'Yes' || amenity.available === 1);
-    
-    // Final Availability: Must be manually available AND not fully booked
     const finalAvailable = isManuallyAvailable && !isFullyBooked;
 
     return {
@@ -69,9 +63,9 @@ const CustomerAmModel = {
       description: amenity.description,
       capacity: amenity.capacity,
       price: parseFloat(amenity.price),
-      available: finalAvailable ? 'Yes' : 'No', // Override availability based on bookings
+      available: finalAvailable ? 'Yes' : 'No',
       quantity: totalQuantity,
-      remaining: Math.max(0, totalQuantity - currentBooked), // Prevent negative numbers
+      remaining: Math.max(0, totalQuantity - currentBooked), 
       image: amenity.image
     };
   },

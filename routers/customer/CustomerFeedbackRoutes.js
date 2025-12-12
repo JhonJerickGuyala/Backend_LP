@@ -3,7 +3,6 @@ import { getAllFeedbacks, createFeedback } from '../../controller/customer/Custo
 
 const router = express.Router();
 
-// Ito ang tatawagin ng frontend: http://localhost:5000/api/feedbacks
 router.get('/', getAllFeedbacks);
 router.post('/', createFeedback);
 
