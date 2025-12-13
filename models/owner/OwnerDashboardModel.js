@@ -2,17 +2,17 @@ import db from '../../config/db.js';
 
 const OwnerDashboardModel = {
 
+    // 1. GET DASHBOARD ANALYTICS (Walang pagbabago dito)
     getAnalytics: async (startDate, endDate) => {
         const params = [startDate, endDate];
         
-   
         const [financials] = await db.query(`
             SELECT 
                 IFNULL(SUM(total_amount), 0) as gross_sales,
                 IFNULL(SUM(downpayment), 0) as cash_collected,
                 IFNULL(SUM(balance), 0) as receivables
             FROM TransactionDb
-            WHERE DATE(DATE_ADD(created_at, INTERVAL 8 HOUR)) BETWEEN ? AND ?
+            WHERE DATE(created_at) BETWEEN ? AND ?
             AND booking_status != 'Cancelled'
         `, params);
 
@@ -22,7 +22,7 @@ const OwnerDashboardModel = {
                 COUNT(*) as count,
                 IFNULL(SUM(total_amount), 0) as revenue
             FROM TransactionDb
-            WHERE DATE(DATE_ADD(created_at, INTERVAL 8 HOUR)) BETWEEN ? AND ?
+            WHERE DATE(created_at) BETWEEN ? AND ?
             AND booking_status != 'Cancelled'
             GROUP BY booking_type
         `, params);
@@ -32,16 +32,16 @@ const OwnerDashboardModel = {
                 booking_status,
                 COUNT(*) as count
             FROM TransactionDb
-            WHERE DATE(DATE_ADD(created_at, INTERVAL 8 HOUR)) BETWEEN ? AND ?
+            WHERE DATE(created_at) BETWEEN ? AND ?
             GROUP BY booking_status
         `, params);
 
         const [trend] = await db.query(`
             SELECT 
-                DATE_FORMAT(DATE_ADD(created_at, INTERVAL 8 HOUR), '%Y-%m-%d') as date,
+                DATE_FORMAT(created_at, '%Y-%m-%d') as date,
                 IFNULL(SUM(total_amount), 0) as sales
             FROM TransactionDb
-            WHERE DATE(DATE_ADD(created_at, INTERVAL 8 HOUR)) BETWEEN ? AND ?
+            WHERE DATE(created_at) BETWEEN ? AND ?
             AND booking_status != 'Cancelled'
             GROUP BY date
             ORDER BY date ASC
@@ -55,6 +55,7 @@ const OwnerDashboardModel = {
         };
     },
 
+    // 2. GET TRANSACTIONS LIST (Dito ang Final Fix)
     getTransactions: async (startDate, endDate) => {
         const [rows] = await db.query(`
             SELECT 
@@ -67,10 +68,14 @@ const OwnerDashboardModel = {
                 t.booking_status,
                 t.extension_history,
                 
-                -- Ito yung dating date (Fallback)
-                DATE_FORMAT(DATE_ADD(t.created_at, INTERVAL 8 HOUR), '%M %d, %Y %h:%i %p') as formatted_date,
+                -- OPTION A: Raw String (Kung gusto mo ikaw mag-format sa frontend pero ayaw mo mag-auto-convert)
+                CAST(t.created_at AS CHAR) as created_at,
 
-                -- 👇 ITO ANG KULANG: Kunin ang Check-in/Check-out mula sa ReservationDb
+                -- OPTION B: Formatted String (ITO ANG GAMITIN MO SA DISPLAY)
+                -- Ito ay maglalabas ng "December 12, 2025 08:34 PM" bilang TEXT.
+                -- Dahil text ito, hindi ito pwedeng baguhin ng browser.
+                DATE_FORMAT(t.created_at, '%M %d, %Y %h:%i %p') as formatted_date,
+
                 DATE_FORMAT(MIN(r.check_in_date), '%b %d, %Y %h:%i %p') as check_in_formatted,
                 DATE_FORMAT(MAX(r.check_out_date), '%b %d, %Y %h:%i %p') as check_out_formatted,
                 
@@ -79,7 +84,8 @@ const OwnerDashboardModel = {
             FROM TransactionDb t
             LEFT JOIN ReservationDb r ON t.id = r.transaction_id
             
-            WHERE DATE(DATE_ADD(t.created_at, INTERVAL 8 HOUR)) BETWEEN ? AND ?
+            -- Filter logic stays the same (Database Date)
+            WHERE DATE(t.created_at) BETWEEN ? AND ?
             
             GROUP BY t.id
             ORDER BY t.created_at DESC
