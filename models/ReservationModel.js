@@ -57,10 +57,6 @@ const ReservationModel = {
     return Promise.all(promises);
   },
 
-  // =========================================================
-  // 2. DASHBOARD / TASK LIST FEATURES
-  // =========================================================
-
   async getTodaysCheckIns() {
     const [rows] = await db.query(
       `SELECT r.*, t.customer_name, t.contact_number 

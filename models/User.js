@@ -3,17 +3,14 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 const User = {
-  // Create new user
   async create(userData) {
     const { username, email, password, role = 'customer' } = userData;
 
-    // 1. Email Format Check
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         throw new Error("Invalid email format");
     }
 
-    // 2. Password Strength Check (8 chars, 1 upper, 1 lower, 1 number)
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
         throw new Error("Password must be at least 8 characters, with 1 uppercase, 1 lowercase, and 1 number.");
@@ -28,13 +25,11 @@ const User = {
     return result.insertId;
   },
 
-  // Find user by email
   async findByEmail(email) {
     const [rows] = await db.query('SELECT * FROM UserDb WHERE email = ?', [email]);
     return rows[0];
   },
 
-  // Find user by ID
   async findById(id) {
     const [rows] = await db.query('SELECT * FROM UserDb WHERE id = ?', [id]);
     return rows[0];
@@ -50,7 +45,6 @@ const User = {
     return rows[0];
   },
 
-  // Update user reset token
   async updateResetToken(userId, token, expires) {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     await db.query(
@@ -59,7 +53,6 @@ const User = {
     );
   },
 
-  // Update password
   async updatePassword(userId, password) {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
@@ -73,7 +66,6 @@ const User = {
     );
   },
 
-  // Check if email or username exists
   async checkDuplicate(email, username) {
     const [rows] = await db.query(
       'SELECT * FROM UserDb WHERE email = ? OR username = ?',

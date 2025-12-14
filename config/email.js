@@ -9,7 +9,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Verify connection configuration
 transporter.verify(function (error, success) {
   if (error) {
     console.log("Email Server Error:", error);
@@ -18,5 +17,4 @@ transporter.verify(function (error, success) {
   }
 });
 
-// 2. Change module.exports to export default
 export default transporter;
